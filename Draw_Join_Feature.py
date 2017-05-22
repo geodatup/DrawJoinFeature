@@ -63,7 +63,7 @@ class DrawJoinFeature:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&Dessiner l'entité jointe')
+        self.menu = self.tr(u'&Dessiner_entite_jointe')
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'DrawJoinFeature')
         self.toolbar.setObjectName(u'DrawJoinFeature')
@@ -170,7 +170,7 @@ class DrawJoinFeature:
         icon_path = ':/plugins/DrawJoinFeature/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Dessiner l'entité jointe'),
+            text=self.tr(u'Dessiner_entite_jointe'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -200,7 +200,7 @@ class DrawJoinFeature:
 
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&Dessiner l'entité jointe'),
+                self.tr(u'&Dessiner_entite_jointe'),
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
