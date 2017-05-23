@@ -42,6 +42,7 @@ class DrawJoinFeatureDockWidget(QtGui.QDockWidget, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
+       
         self.setupUi(self)
 
     def closeEvent(self, event):
