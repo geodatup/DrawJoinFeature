@@ -192,6 +192,9 @@ class DrawJoinFeature:
         # disconnects
         self.dockwidget.closingPlugin.disconnect(self.onClosePlugin)
 
+
+
+
         # remove this statement if dockwidget is to remain
         # for reuse if plugin is reopened
         # Commented next statement since it causes QGIS crashe
@@ -251,8 +254,7 @@ class DrawJoinFeature:
         self.dockwidget.list_exu.clear()
         self.dockwidget.list_bv.clear()
 
-        ## Evo : faire un menu dynamique connecté aux modifications faites sur le menu Layers
-
+        # liste dynamique connecté aux modifications faites sur le menu Layers
         self.layersListUp2Date()
 
         # on créer 2 connections aux evenements add/remove layer dans le legendLayer pannel
@@ -264,18 +266,10 @@ class DrawJoinFeature:
         QObject.connect(self.dockwidget.list_exu,SIGNAL("currentIndexChanged(int)"),self.layerChanged)
         QObject.connect(self.dockwidget.list_bv,SIGNAL("currentIndexChanged(int)"),self.layerChanged)
 
-        # On catch l'index de la sélection de la combo
-       # exuLyrIdx = self.dockwidget.list_exu.currentIndex()
-       # bvLyrIdx = self.dockwidget.list_bv.currentIndex()
-
-        
         # on active le bouton de selection d'entité
         self.iface.actionSelect().trigger()
-
-        # on connect le layer sélectionné dans la combobox avec l'evenement de sélection d'entité sur la carte (afin d'avoir toujours
-        # les info mises à jour dans l'interface)
-       # self.selectionConnectByLayerIdx(exuLyrIdx)
-
+        self.layerChanged()
+        self.listen_SelectionChange()
 
 
 
@@ -298,12 +292,13 @@ class DrawJoinFeature:
         self.bvLyr = registry.mapLayer(identifier_bv)
 
         QgsMessageLog.logMessage("identifier_exu : " + str(identifier_exu) + " self.exuLyr : " + str(self.exuLyr), "Dessiner_entite_jointe")
-
-        #Et IMPORTANT on reconnect le layer sélectionné dans la combobox avec l'evenement de sélection d'entité sur la carte (afin d'avoir toujours
-        # les info mises à jour dans l'interface)
-        self.selectionConnectByLayerIdx(self.exuLyr)
-        #rendre la couche exutoire active
-        self.iface.setActiveLayer(self.exuLyr)
+        
+        if self.exuLyr is not None:
+            #Et IMPORTANT on reconnect le layer sélectionné dans la combobox avec l'evenement de sélection d'entité sur la carte (afin d'avoir toujours
+            # les info mises à jour dans l'interface)
+            self.selectionConnectByLayerIdx(self.exuLyr)
+            #rendre la couche exutoire active
+            self.iface.setActiveLayer(self.exuLyr)
 
 
     def layersListUp2Date(self): 
@@ -363,10 +358,6 @@ class DrawJoinFeature:
             effectue la connection du Signal de changement de sélection sur une couche (par son index)
             récupère les entités sélectionnées de la couche et leurs info
         """
-        #lyr = self.getLayerByIdx(layerIdx) # on prend le layer à partir de son index 
-
-        #self.getInfoFronSelectionInLayer(lyr) # on prend les info à partir de la sélection du layer
-
         QObject.connect(layer, SIGNAL("selectionChanged()"), self.listen_SelectionChange)
     
     def getLayerIdxByName(self, layerName):
@@ -389,20 +380,23 @@ class DrawJoinFeature:
 
     def getInfoFronSelectionInLayer(self, layer):
 
-        selectedFeatures = self.getSelectFeature(layer) # on prend les sélections à partir du layer
+        selectedFeatures = self.getSelectedFeatures(layer) # on prend les sélections à partir du layer
         if selectedFeatures is not None:
-            if len(selectedFeatures) >= 1:    
-                info = self.getSelectedFeaturesInfo(selectedFeatures) # on prend les info de la couche
+            if len(selectedFeatures) >= 1:
+                # on cherche l'index du champ sur lequel appliquer un tri si plusieurs entités sont sélectionnées (plus loin dans getFirstEntityAttributValue )
+                # On prend son index    
+                sortIdx = layer.fieldNameIndex('SUPERFICIE')
+                # et ses info trier (si possible)            
+                info = self.getSelectedFeaturesInfo(selectedFeatures, sortIdx) # on prend les info de la couche
+                
                 return info
-            else:            
+            else: # aucune entité sélecitonné dans le layer           
                 QgsMessageLog.logMessage(u"il faut sélectionner au moins 1 entité ", "Dessiner_entite_jointe")
                 self.dockwidget.attribut_id.setText("")
                 self.dockwidget.attribut_superficie.setText("")
     
-    def getSelectFeature(self,layer):
-        # récupérer les info du point sélectionné à partir de l'index de la liste de couche (dans la combobox) 
-        #exuLyr = self.getLayerByIdx(getLyrIdx(list_exu))
-        #QgsMessageLog.logMessage(str(layer), "Dessiner_entite_jointe")
+    def getSelectedFeatures(self,layer):
+        # récupérer les points sélectionnés à partir de l'index de la liste de couche (dans la combobox) 
 
         #on test que la couche est bien définie dans la liste
         if layer is not None:
@@ -411,42 +405,47 @@ class DrawJoinFeature:
                 selectedFeatures = layer.selectedFeatures()
                 
                 if selectedFeatures is not None:
-                    #QgsMessageLog.logMessage(u"selectedFeatures " + str(selectedFeatures), "Dessiner_entite_jointe")
-
-                    if len(selectedFeatures) > 1:
+                    if len(selectedFeatures) > 1:                        
                         QgsMessageLog.logMessage(u"trop d'exutoire selectionnés : "+str(selectedFeatures), "Dessiner_entite_jointe")
                     elif len(selectedFeatures) == 0:
                         QgsMessageLog.logMessage(u"aucun exutoire sélectionné", "Dessiner_entite_jointe")
+                        return None
                     else:
                         QgsMessageLog.logMessage(u"exutoire selectionné : "+ str(selectedFeatures), "Dessiner_entite_jointe")
-                        return None
 
                 return selectedFeatures
 
     
-    def getSelectedFeaturesInfo(self, selectedFeatures):
+    def getSelectedFeaturesInfo(self, selectedFeatures, sortIdx):
 
         #champs exutoires. Evo : à mettre dans une liste (un fichier etC... et à passer en argument)
         exu_id = "ID_BNBD"
         exu_superficie = "SUPERFICIE"
         exu_aval = "EXU_AVAL"
 
-        val_exu_id = self.getFirstEntityAttributValue(selectedFeatures, exu_id)
-        val_exu_superficie = self.getFirstEntityAttributValue(selectedFeatures, exu_superficie)
+        val_exu_id = self.getFirstEntityAttributValue(selectedFeatures, exu_id, sortIdx)
+        val_exu_superficie = self.getFirstEntityAttributValue(selectedFeatures, exu_superficie, sortIdx)
 
         self.dockwidget.attribut_id.setText(str(val_exu_id))
         self.dockwidget.attribut_superficie.setText(str(val_exu_superficie))
 
         return val_exu_id
 
-    def getFirstEntityAttributValue(self, selectedFeatures, attribut):
-        # Evo : trier les valeurs par superficie décroissante et prendre uniquement le premier
 
-        value = selectedFeatures[0][attribut]
 
-        QgsMessageLog.logMessage("attributs : " + str(selectedFeatures[0][attribut]), "Dessiner_entite_jointe")
+    def getFirstEntityAttributValue(self, selectedFeatures, attribut, sortIdx):
+        # Evo : trier les valeurs par superficie décroissante et prendre uniquement le premier        
+        
+        def getKey(item):
+            return item[sortIdx]    
 
-        return value
+        if sortIdx >= 0: # ça veut dire qu'il a trouvé l'index du champs du tri
+            sort = sorted(selectedFeatures, key=getKey, reverse=True)
+            valuesSort = sort[0][attribut]
+            return valuesSort
+        else:
+            value = selectedFeatures[0][attribut]
+            return value        
 
     def listen_SelectionChange(self): # je n'arrive pas à passer l'argument LyrIdx ici
 
@@ -487,29 +486,30 @@ class DrawJoinFeature:
         
         #on récupère les features et on dessine dans la couche temp
         features = self.getJoinEntityById(joinLayer, pk)
+        if len(features) > 0:
+            cfeature = QgsFeature()
+            cfeatures=[]
+            
+            
+            for f in features:
+                cfeature_Attributes=[]
+                cfeature_Attributes.extend(f.attributes())
+                cfeature.setGeometry(f.geometry())
+                cfeature.setAttributes(cfeature_Attributes)
+                cfeatures.append(cfeature)
+    
+            
+            templayer = QgsVectorLayer('Polygon?crs=epsg:2154', tmp_layer_name, 'memory')
+            dataProvider = templayer.dataProvider()
+            templayer.startEditing()
+            dataProvider.addFeatures(cfeatures)
+            templayer.commitChanges()
+            templayer.updateExtents()
+            
+            QgsMapLayerRegistry.instance().addMapLayer(templayer)
+        else:
+            QgsMessageLog.logMessage(u"aucune correspondance dans la couche "+str(joinLayer.name()), "Dessiner_entite_jointe")
 
-        cfeature = QgsFeature()
-        cfeatures=[]
-        
-        
-        for f in features:
-            cfeature_Attributes=[]
-            cfeature_Attributes.extend(f.attributes())
-            cfeature.setGeometry(f.geometry())
-            cfeature.setAttributes(cfeature_Attributes)
-            cfeatures.append(cfeature)
-
-        
-        templayer = QgsVectorLayer('Polygon?crs=epsg:2154', tmp_layer_name, 'memory')
-        dataProvider = templayer.dataProvider()
-        templayer.startEditing()
-        dataProvider.addFeatures(cfeatures)
-        templayer.commitChanges()
-        templayer.updateExtents()
-        
-        
-        vlayer = QgsVectorLayer( "?layer=ogr:/data/myfile.shp", "myvlayer", "virtual" )
-        QgsMapLayerRegistry.instance().addMapLayer(templayer)
 
 
 
