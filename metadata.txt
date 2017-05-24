@@ -14,10 +14,10 @@ version=0.1
 author=Hugo Roussaffa / Geodatup
 email=contact@geodatup.com
 
-about=plugin développé pour la acceléré la phase de production de Bassin versant à partir de la sélection d'un point exutoire. Ce plugin a été financé par AMENIS (Toulouse).
+about=Ce plugin a été développé en vue d'accélerer la phase de production de Bassin versant à partir d'une sélection d'un point exutoire (ou plusieurs). Ce plugin a été financé par la société AMENIS (Toulouse).
 
-tracker=https://github.com/geodatup/
-repository=https://github.com/geodatup/
+tracker=https://github.com/geodatup/DrawJoinFeature/issues
+repository=https://github.com/geodatup/DrawJoinFeature
 # End of mandatory metadata
 
 # Recommended items:
@@ -26,13 +26,13 @@ repository=https://github.com/geodatup/
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=
+tags=join, vector
 
 homepage=https://github.com/geodatup/
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=False
+experimental=True
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
