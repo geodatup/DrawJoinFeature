@@ -22,9 +22,9 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QObject, SIGNAL
 from PyQt4.QtGui import QAction, QIcon, QDialog, QFormLayout
-from qgis.gui import (QgsFieldComboBox, QgsMapLayerComboBox,
-                      QgsMapLayerProxyModel)
+
 from qgis.core import QgsMessageLog, QgsFeatureRequest, QgsFeature, QgsVectorLayer, QgsMapLayerRegistry
+import qgis.utils
 
 # Initialize Qt resources from file resources.py
 import resources
@@ -271,6 +271,8 @@ class DrawJoinFeature:
         self.layerChanged()
         self.listen_SelectionChange()
 
+        QgsMessageLog.logMessage(str(qgis.utils.QGis.QGIS_VERSION_INT),"Dessiner_entite_jointe")
+
 
 
     def saveCurrentLayersId(self, dockwidget): 
@@ -394,6 +396,9 @@ class DrawJoinFeature:
                 QgsMessageLog.logMessage(u"il faut sélectionner au moins 1 entité ", "Dessiner_entite_jointe")
                 self.dockwidget.attribut_id.setText("")
                 self.dockwidget.attribut_superficie.setText("")
+        else:
+            QgsMessageLog.logMessage(u"il faut sélectionner au moins 1 entité ", "Dessiner_entite_jointe")
+
     
     def getSelectedFeatures(self,layer):
         # récupérer les points sélectionnés à partir de l'index de la liste de couche (dans la combobox) 
@@ -465,10 +470,18 @@ class DrawJoinFeature:
 
         request = joinLayer.getFeatures( QgsFeatureRequest().setFilterExpression(  format(bv_id) + " = '{}' ".format(pk) ))
 
-        joinLayer.selectByIds(  [ f.id() for f in request ] )
+        
+        if qgis.utils.QGis.QGIS_VERSION_INT < 21600 :
+            QgsMessageLog.logMessage(u"version < 2.16 ", "Dessiner_entite_jointe")
 
-        # tester si aucun n'existe (probablement la couche bv n'est pas renseignée)
+            joinLayer.setSelectedFeatures( [ f.id() for f in request ] )
+
+
+        else:
+            joinLayer.selectByIds(  [ f.id() for f in request ] )
+            
         features = joinLayer.selectedFeatures()
+        QgsMessageLog.logMessage(u"features : " + str(features), "Dessiner_entite_jointe")
 
         return features
 
@@ -505,6 +518,7 @@ class DrawJoinFeature:
             dataProvider.addFeatures(cfeatures)
             templayer.commitChanges()
             templayer.updateExtents()
+            templayer.setLayerTransparency(50) # rendre la couche transparante
             
             QgsMapLayerRegistry.instance().addMapLayer(templayer)
         else:
