@@ -428,18 +428,20 @@ class DrawJoinFeature:
         exu_superficie = "SUPERFICIE"
         exu_aval = "EXU_AVAL"
 
+        # on récupère la valeur des attributs de la première entité (car elles sont triées par le champs sortIdx)
         val_exu_id = self.getFirstEntityAttributValue(selectedFeatures, exu_id, sortIdx)
         val_exu_superficie = self.getFirstEntityAttributValue(selectedFeatures, exu_superficie, sortIdx)
 
+        # on affiche la valeur des attributs dans le widget.
         self.dockwidget.attribut_id.setText(str(val_exu_id))
         self.dockwidget.attribut_superficie.setText(str(val_exu_superficie))
 
-        return val_exu_id
+        return val_exu_id # renvoi seulement l'identifiant exu car utile pour faire la "jointure"
 
 
 
     def getFirstEntityAttributValue(self, selectedFeatures, attribut, sortIdx):
-        # Evo : trier les valeurs par superficie décroissante et prendre uniquement le premier        
+        # trier les valeurs par superficie décroissante et prendre uniquement la première    
         
         def getKey(item):
             return item[sortIdx]    
@@ -470,18 +472,13 @@ class DrawJoinFeature:
 
         request = joinLayer.getFeatures( QgsFeatureRequest().setFilterExpression(  format(bv_id) + " = '{}' ".format(pk) ))
 
-        
+        # test sur la version de Qgis, utilisation d'une fonction deprecated avant la 2.16 
         if qgis.utils.QGis.QGIS_VERSION_INT < 21600 :
-            QgsMessageLog.logMessage(u"version < 2.16 ", "Dessiner_entite_jointe")
-
             joinLayer.setSelectedFeatures( [ f.id() for f in request ] )
-
-
         else:
             joinLayer.selectByIds(  [ f.id() for f in request ] )
-            
+        # ajout des entités séléctionnées dans une variable    
         features = joinLayer.selectedFeatures()
-        QgsMessageLog.logMessage(u"features : " + str(features), "Dessiner_entite_jointe")
 
         return features
 
