@@ -318,7 +318,7 @@ class DrawJoinFeature:
 
         #for layer in sorted(QgsMapLayerRegistry.instance().mapLayers().values()):
         for layer in self.iface.legendInterface().layers():
-            QgsMessageLog.logMessage("layer name loaded :  "  + str(layer.name()), "Dessiner_entite_jointe")
+            #QgsMessageLog.logMessage("layer name loaded :  "  + str(layer.name()), "Dessiner_entite_jointe")
             
             # on popule les combobox
             self.dockwidget.list_exu.addItem(layer.name(), layer.id())
